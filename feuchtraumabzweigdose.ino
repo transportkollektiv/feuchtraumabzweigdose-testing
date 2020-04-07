@@ -3,8 +3,6 @@
 
 #include <lmic.h>
 #include <hal/hal.h>
-#include <SPI.h>
-#include <WiFi.h>
 #include <esp_wifi.h>
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
@@ -129,7 +127,6 @@ void onEvent (ev_t ev) {
       break;
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
-      digitalWrite(BUILTIN_LED, LOW);
       if (LMIC.txrxFlags & TXRX_ACK) {
         Serial.println(F("Received Ack"));
       }
@@ -183,8 +180,10 @@ float getBatteryVoltage() {
     current_reading = analogRead(BATTERY_VOLTAGE);
     average_reading += current_reading;
   }
-  float vBat = average_reading / 1024 * 3.3 * 100.0;
-  
+  //float vBat = average_reading / 1024 * 3.3 * 100.0;
+  //float vBat = (3.3 / 4096.0) * ( average_reading / 5.0) * 2.268;
+    float vBat = (3.3 / 4096.0) * ( average_reading / 5.0) * 226.8;
+
   return vBat;
 }
 
@@ -200,7 +199,6 @@ void do_send(osjob_t* j) {
   { 
     LMIC_setTxData2(1, txBuffer, sizeof(txBuffer), 0);
     Serial.println(F("Packet queued"));
-    digitalWrite(BUILTIN_LED, HIGH);
   }
   // Next TX is scheduled after TX_COMPLETE event.
 }
@@ -214,13 +212,11 @@ void setup() {
   //esp_wifi_stop();
   esp_wifi_set_mode(WIFI_MODE_NULL);
   btStop();
-
-  pinMode(BUILTIN_LED, OUTPUT);
   
   // Setup ADC to measure battery voltage
-  adcAttachPin(BATTERY_VOLTAGE);
-  adcStart(BATTERY_VOLTAGE);
-  analogReadResolution(10);
+  //adcAttachPin(BATTERY_VOLTAGE);
+  //adcStart(BATTERY_VOLTAGE);
+  //analogReadResolution(10);
   uint16_t startVoltage = getBatteryVoltage();
 
   txBuffer[9] = (startVoltage >> 8);
@@ -309,7 +305,6 @@ void setup() {
 
   //TODO determine whether to send emergency message because of voltage
 
-  digitalWrite(VEXT_ON, HIGH);
   gps.init();
   //gps.softwareReset();
 
@@ -349,6 +344,7 @@ void setup() {
           // Prepare upstream data transmission at the next possible time.
           gps.buildPacket(txBuffer);
           hasFix = true;
+          digitalWrite(VEXT_ON, LOW);
           do_send(&sendjob);
         } else {
           Serial.println("Not sending, stationary.");
@@ -381,7 +377,6 @@ if (!hasFix) {
 
 }
 
-  digitalWrite(BUILTIN_LED, LOW);
 }
 
 void lowPower() {
@@ -391,12 +386,12 @@ void lowPower() {
   // Set two wakeup sources: Timer for heartbeat, and interrupt for
   // motion detection from IMU
   #ifdef HAS_IMU
-    //rtc_gpio_init(GPIO_NUM_4);
-    //rtc_gpio_set_direction(GPIO_NUM_4, RTC_GPIO_MODE_INPUT_ONLY);
-    //rtc_gpio_pulldown_en(GPIO_NUM_4);
-    //esp_sleep_enable_ext0_wakeup(GPIO_NUM_4,1);
+    rtc_gpio_pulldown_en(GPIO_NUM_4);
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4,1);
+    delay(500);
   #endif
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  delay(500);
   esp_deep_sleep_start();
 }
 
