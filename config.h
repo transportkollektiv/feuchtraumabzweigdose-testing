@@ -5,7 +5,7 @@
 // DEBUG
 // Define this Macro to increase verbosity and update interval
 
-#define DEBUG 1
+// #define DEBUG 1
 
 // *****************************************
 
@@ -34,7 +34,7 @@
 #define VEXT_ON 25
 
 #define IMU_NCS 13
-#define IMU_WAKEUP_FORCE 30
+#define IMU_WAKEUP_FORCE 300
 
 #define RFM_NSS 21
 #define RFM_RESET 33

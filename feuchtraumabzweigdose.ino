@@ -1,5 +1,5 @@
-#define FW_VERSION "20191023-0.4.1"
-#define TRACKER 16
+#define FW_VERSION "20200408-0.5.0"
+#define TRACKER 14
 
 #include <lmic.h>
 #include <hal/hal.h>
@@ -18,9 +18,9 @@
   #define STATCOUNT 1
 #else
   #ifdef HAS_IMU
-    #define TIME_TO_SLEEP 600
+    #define TIME_TO_SLEEP 1800
   #else
-    #define TIME_TO_SLEEP 180
+    #define TIME_TO_SLEEP 600
   #endif
   #define STATCOUNT 2
 #endif
