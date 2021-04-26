@@ -5,7 +5,7 @@ HardwareSerial GPSSerial(1);
 
 void gps::init()
 {
-  GPSSerial.begin(9600, SERIAL_8N1, GPS_TX, GPS_RX);
+  GPSSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   GPSSerial.setTimeout(2);
 }
 
