@@ -3,9 +3,7 @@
 
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
-
-#define GPS_TX 17
-#define GPS_RX 16
+#include "config.h"
 
 class gps
 {

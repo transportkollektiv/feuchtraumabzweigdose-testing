@@ -1,5 +1,5 @@
-#ifndef LORA_TTNMAPPER_TBEAM_CONFIG_INCLUDED
-#define LORA_TTNMAPPER_TBEAM_CONFIG_INCLUDED
+#ifndef CONFIG_H
+#define CONFIG_H
 
 // *****************************************
 // DEBUG
@@ -8,11 +8,7 @@
 // #define DEBUG 1
 
 // *****************************************
-
-
-// *****************************************
 // HARDWARE SPECIFICS
-
 
 // For WROOM:
 // DIO0 → IO26
@@ -41,6 +37,9 @@
 #define RFM_DIO0 26
 #define RFM_DIO1 27
 
+#define GPS_TX 17
+#define GPS_RX 16
+
 // *****************************************
 // OTHER PARAMETERS
 
@@ -48,17 +47,5 @@
 #define GPS_TIMEOUT 150000
 
 
-// *********************************************
-// UPDATE WITH YOUR TTN KEYS AND ADDR.
 
-
-RTC_DATA_ATTR static u1_t PROGMEM APPEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-#if TRACKER == 16
-#define HAS_IMU MPU9250
-RTC_DATA_ATTR static u1_t PROGMEM DEVEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-RTC_DATA_ATTR static u1_t PROGMEM APPKEY[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-#endif
-
-
-#endif //LORA_TTNMAPPER_TBEAM_CONFIG_INCLUDED
+#endif //CONFIG_H

@@ -1,4 +1,4 @@
-#define FW_VERSION "20200408-0.5.0"
+#define FW_VERSION "20210426-0.5.1"
 #define TRACKER 14
 
 #include <lmic.h>
@@ -6,10 +6,14 @@
 #include <esp_wifi.h>
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
-
-// UPDATE the config.h file in the same folder WITH YOUR TTN KEYS AND ADDR.
 #include "config.h"
 #include "gps.h"
+
+#if __has_include("ttnconfig.h")
+#include "ttnconfig.h"
+#else
+#error "No ttnconfig.h file found. Please rename ttnconfig.sample.h to ttnconfig.h and fill in your TTN Keys!"
+#endif
 
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
 
@@ -31,9 +35,6 @@
   MPU9250 IMU(SPI,IMU_NCS);
   int status;
 #endif
-
-// OTAA (true) or ABP (false)
-#define USE_OTAA true
 
 RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR u4_t RTC_seqnoUp = 0;
@@ -280,7 +281,6 @@ void setup() {
 
   LMIC_setClockError(MAX_CLOCK_ERROR * 1 / 100);
 
-  
   LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
   LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
   LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
