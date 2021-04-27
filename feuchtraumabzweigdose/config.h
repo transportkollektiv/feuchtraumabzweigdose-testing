@@ -5,10 +5,13 @@
 // DEBUG
 // Define this Macro to increase verbosity and update interval
 
-// #define DEBUG 1
+#define DEBUG 1
 
 // *****************************************
 // HARDWARE SPECIFICS
+
+#define HAS_IMU MPU9250
+#define IMU_WAKEUP_FORCE 300
 
 // For WROOM:
 // DIO0 → IO26
@@ -29,8 +32,10 @@
 #define BATTERY_VOLTAGE 32
 #define VEXT_ON 25
 
+#ifdef HAS_IMU
 #define IMU_NCS 13
-#define IMU_WAKEUP_FORCE 300
+#define IMU_WAKE GPIO_NUM_4
+#endif
 
 #define RFM_NSS 21
 #define RFM_RESET 33

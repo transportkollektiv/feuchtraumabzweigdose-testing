@@ -4,10 +4,14 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <esp_wifi.h>
-#include "esp_sleep.h"
-#include "driver/rtc_io.h"
+#include <esp_sleep.h>
+#include <driver/rtc_io.h>
 #include "config.h"
 #include "gps.h"
+
+#ifdef HAS_IMU
+#include "imu.h"
+#endif
 
 #if __has_include("ttnconfig.h")
 #include "ttnconfig.h"
@@ -29,13 +33,6 @@
   #define STATCOUNT 2
 #endif
 
-#if defined(HAS_IMU) && HAS_IMU == MPU9250
-  // MPU Accelerometer for wake on motion
-  #include "MPU9250.h"
-  MPU9250 IMU(SPI,IMU_NCS);
-  int status;
-#endif
-
 RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR u4_t RTC_seqnoUp = 0;
 RTC_DATA_ATTR int otaaJoined = 0;
@@ -54,6 +51,7 @@ esp_sleep_wakeup_cause_t wakeup_reason;
 char s[32]; // used to sprintf for Serial output
 uint8_t txBuffer[11];
 gps gps;
+imu imu;
 
 // OTAA, see config.h for settings
 #if defined(USE_OTAA) && USE_OTAA == true
@@ -308,21 +306,9 @@ void setup() {
   gps.init();
   //gps.softwareReset();
 
-  #if defined(HAS_IMU) && HAS_IMU == MPU9250
-  // start communication with IMU 
-  status = IMU.begin();
-  #ifdef DEBUG
-    if (status < 0) {
-      Serial.println("IMU initialization unsuccessful");
-      Serial.println("Check IMU wiring or try cycling power");
-      Serial.print("Status: ");
-      Serial.println(status);
-      while(1) {}
-    }
-  #endif  
-  int imo_wom = IMU.enableWakeOnMotion(IMU_WAKEUP_FORCE,MPU9250::LP_ACCEL_ODR_15_63HZ);
-  Serial.print("Wake on motion set: ");
-  Serial.println(imo_wom);
+  #ifdef HAS_IMU
+  imu.init();
+  imu.enableWakeup();
   #endif
 
   unsigned long startGpsTime = millis();
@@ -386,8 +372,8 @@ void lowPower() {
   // Set two wakeup sources: Timer for heartbeat, and interrupt for
   // motion detection from IMU
   #ifdef HAS_IMU
-    rtc_gpio_pulldown_en(GPIO_NUM_4);
-    esp_sleep_enable_ext0_wakeup(GPIO_NUM_4,1);
+    rtc_gpio_pulldown_en(IMU_WAKE);
+    esp_sleep_enable_ext0_wakeup(IMU_WAKE,1);
     delay(500);
   #endif
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
