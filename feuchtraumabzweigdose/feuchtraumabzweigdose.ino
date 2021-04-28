@@ -174,23 +174,24 @@ void onEvent (ev_t ev) {
 
 float getBatteryVoltage() {
   // first read of voltage; this is the least accurate and will be discarded.
-  int current_reading = analogRead(BATTERY_VOLTAGE);
-  int average_reading = 0;
-  // read voltage multiple times and average over all readings
-  for (int i = 0; i < 5; i++) {
-    current_reading = analogRead(BATTERY_VOLTAGE);
-    average_reading += current_reading;
-  }
-  //float vBat = average_reading / 1024 * 3.3 * 100.0;
-  //float vBat = (3.3 / 4096.0) * ( average_reading / 5.0) * 2.268;
-    float vBat = (3.3 / 4096.0) * ( average_reading / 5.0) * 226.8;
+  analogRead(BATTERY_VOLTAGE);
 
-  return vBat;
+  // read voltage multiple times and average over all readings
+  uint16_t readings = 0;
+  for (int i = 0; i < 5; i++) {
+    readings += analogRead(BATTERY_VOLTAGE);
+  }
+  float reading = readings / 5;
+
+  // calculate: 
+  // * analog read resolution: 10 bit (0-1023)
+  // * operating voltage: 3.3V
+  // * voltage divider: 1.2 MOhm resistor + 3.3 MOhm resistor
+  return reading * (1 + 1.2 / 3.3) * (3.3 / 1023);
 }
 
 void do_send(osjob_t* j) {  
   
-  uint16_t currentVoltage = getBatteryVoltage() * 100;
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND)
   {
@@ -214,14 +215,12 @@ void setup() {
   esp_wifi_set_mode(WIFI_MODE_NULL);
   btStop();
   
-  // Setup ADC to measure battery voltage
-  //adcAttachPin(BATTERY_VOLTAGE);
-  //adcStart(BATTERY_VOLTAGE);
-  //analogReadResolution(10);
-  uint16_t startVoltage = getBatteryVoltage();
-
-  txBuffer[9] = (startVoltage >> 8);
-  txBuffer[10] = startVoltage;
+  // measure battery voltage
+  adcAttachPin(BATTERY_VOLTAGE);
+  analogReadResolution(10);
+  float vBat = getBatteryVoltage();
+  txBuffer[9] = (uint16_t)(vBat * 100) >> 8;
+  txBuffer[10] = (uint16_t)(vBat * 100);
   
   // setup Vext pin, keep low until LoRa is setup and it is clear that voltage is sufficient
   pinMode(VEXT_ON, OUTPUT);
@@ -239,7 +238,7 @@ void setup() {
     Serial.println("Boot number: " + String(bootCount));
     Serial.println("RTC_seqnoUp: " + String(RTC_seqnoUp));
     Serial.println("Stationary Counter: " + String(statCount));    
-    Serial.println("Battery Voltage: " + String(startVoltage)); 
+    Serial.println("Battery Voltage: " + String(vBat)); 
     Serial.print("Real Battery Voltage from ADC: ");
     Serial.println(analogRead(BATTERY_VOLTAGE));
   
