@@ -4,9 +4,10 @@
 #include <HardwareSerial.h>
 #include "config.h"
 
-#if HAS_IMU == MPU9250
+
+#if HAS_IMU == IMU_MPU9250
 #include <MPU9250.h>
-#elif HAS_IMU == LIS3DH
+#elif HAS_IMU == IMU_LIS3DH
 #include <SparkFunLIS3DH.h>
 #else
 #error "IMU not supported"
@@ -18,15 +19,14 @@ class imu
     public:
         void init ();
         void enableWakeup ();
+        #if HAS_IMU == IMU_MPU9250
+        MPU9250 IMU = MPU9250(SPI, IMU_NCS);
+        #elif HAS_IMU == IMU_LIS3DH
+        LIS3DH IMU = LIS3DH(SPI_MODE, IMU_NCS);
+        #endif
 
     private:
-        int status;
-
-        #if HAS_IMU == MPU9250
-        MPU9250 IMU = MPU9250(SPI, IMU_NCS);
-        #elif HAS_IMU == LIS3DH
-        LIS3DH IMU;
-        #endif
+        
 };
 
 #endif //IMU_H

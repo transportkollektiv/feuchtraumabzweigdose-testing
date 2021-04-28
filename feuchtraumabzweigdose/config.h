@@ -1,6 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define IMU_MPU9250 1
+#define IMU_LIS3DH 2
+
 // *****************************************
 // DEBUG
 // Define this Macro to increase verbosity and update interval
@@ -10,7 +13,8 @@
 // *****************************************
 // HARDWARE SPECIFICS
 
-#define HAS_IMU MPU9250
+//IMU
+#define HAS_IMU IMU_LIS3DH //Choose between IMU_MPU9250 and IMU_LIS3DH
 #define IMU_WAKEUP_FORCE 300
 
 // For WROOM:
