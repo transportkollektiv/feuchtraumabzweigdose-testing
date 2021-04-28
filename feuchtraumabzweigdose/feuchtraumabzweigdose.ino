@@ -222,9 +222,9 @@ void setup() {
   txBuffer[9] = (uint16_t)(vBat * 100) >> 8;
   txBuffer[10] = (uint16_t)(vBat * 100);
   
-  // setup Vext pin, keep low until LoRa is setup and it is clear that voltage is sufficient
+  // setup Vext pin, keep high until LoRa is setup and it is clear that voltage is sufficient
   pinMode(VEXT_ON, OUTPUT);
-  digitalWrite(VEXT_ON, LOW);
+  digitalWrite(VEXT_ON, HIGH);
   
   Serial.begin(115200);
   delay(100);
@@ -304,8 +304,7 @@ void setup() {
 
   //TODO determine whether to send emergency message because of voltage
 
-  gps.init();
-  //gps.softwareReset();
+
 
   #if defined(HAS_IMU) && HAS_IMU == MPU9250
   // start communication with IMU 
@@ -324,64 +323,77 @@ void setup() {
   Serial.println(imo_wom);
   #endif
 
+  // start gps
+  digitalWrite(VEXT_ON, LOW);
+  gps.init();
+  gps.softwareReset();
+
   unsigned long startGpsTime = millis();
   while (millis() < startGpsTime + GPS_TIMEOUT)
+  {
+    if (gps.checkGpsFix())
     {
-      if(gps.checkGpsFix()) {
-        digitalWrite(VEXT_ON, LOW);
-        dist = TinyGPSPlus::distanceBetween(gps.lat(), gps.lng(), prevLat, prevLon);
-     
-        if (dist > DISTANCE_MOVED || statCount > STATCOUNT) {
-          Serial.println("Distance moved: " + String(dist));
-          Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
-          if (dist <= DISTANCE_MOVED) {
-            Serial.println("Sending because stationary for longer than max.");
-           }
-          statCount = 0;
-          prevLat = gps.lat();
-          prevLon = gps.lng();
-          // Prepare upstream data transmission at the next possible time.
-          gps.buildPacket(txBuffer);
-          hasFix = true;
-          digitalWrite(VEXT_ON, LOW);
-          do_send(&sendjob);
-        } else {
-          Serial.println("Not sending, stationary.");
-          Serial.println("Distance moved: " + String(dist));
-          #ifndef HAS_IMU
-            Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
-          #else
-            Serial.println("Time stationary: " + String(statCount));
-         #endif
-          ++statCount;
-          RTC_seqnoUp = LMIC.seqnoUp;
-          lowPower();
+      dist = TinyGPSPlus::distanceBetween(gps.lat(), gps.lng(), prevLat, prevLon);
+
+      if (dist > DISTANCE_MOVED || statCount > STATCOUNT)
+      {
+        Serial.println("Distance moved: " + String(dist));
+        Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
+        if (dist <= DISTANCE_MOVED)
+        {
+          Serial.println("Sending because stationary for longer than max.");
         }
+        statCount = 0;
+        prevLat = gps.lat();
+        prevLon = gps.lng();
+        // Prepare upstream data transmission at the next possible time.
+        gps.buildPacket(txBuffer);
+        hasFix = true;
+        do_send(&sendjob);
+      }
+      else
+      {
+        Serial.println("Not sending, stationary.");
+        Serial.println("Distance moved: " + String(dist));
+        #ifndef HAS_IMU
+        Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
+        #else
+        Serial.println("Time stationary: " + String(statCount));
+        #endif
+
+        ++statCount;
+        RTC_seqnoUp = LMIC.seqnoUp;
+        lowPower();
+      }
       break;
-      } 
-    } 
+    }
+  }
 
-if (!hasFix) {
-  Serial.println("No GPS fix for 150 seconds, sending failure msg");
-  txBuffer[0] = 0;
-  txBuffer[1] = 0;
-  txBuffer[2] = 0;
-  txBuffer[3] = 0;
-  txBuffer[4] = 0;
-  txBuffer[5] = 0;
-  txBuffer[6] = 0;
-  txBuffer[7] = 0;
-  txBuffer[8] = 0;
-  do_send(&sendjob);
+  // turn off gps to save power
+  gps.enableSleep();
+  digitalWrite(VEXT_ON, HIGH);
 
-}
-
+  if (!hasFix)
+  {
+    Serial.println("No GPS fix for 150 seconds, sending failure msg");
+    txBuffer[0] = 0;
+    txBuffer[1] = 0;
+    txBuffer[2] = 0;
+    txBuffer[3] = 0;
+    txBuffer[4] = 0;
+    txBuffer[5] = 0;
+    txBuffer[6] = 0;
+    txBuffer[7] = 0;
+    txBuffer[8] = 0;
+    do_send(&sendjob);
+  }
 }
 
 void lowPower() {
-  gps.enableSleep();
-  digitalWrite(VEXT_ON, LOW);
-  // gps.setLowPower();
+
+  // Ensure that external power supply is off
+  digitalWrite(VEXT_ON, HIGH);
+
   // Set two wakeup sources: Timer for heartbeat, and interrupt for
   // motion detection from IMU
   #ifdef HAS_IMU
