@@ -5,7 +5,7 @@ RTC_DATA_ATTR int otaaJoined = 0;
 RTC_DATA_ATTR u1_t keep_nwkKey[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 RTC_DATA_ATTR u1_t keep_artKey[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 RTC_DATA_ATTR devaddr_t keep_devaddr = 0;
-uint8_t txBuffer[11];
+
 osjob_t sendjob;
 char s[32]; // used to sprintf for Serial output
 
@@ -172,11 +172,11 @@ void lora_onEvent(ev_t ev)
   }
 }
 
-void lora_send () {
-  do_send(&sendjob);
+void lora_send (uint8_t *txBuffer, size_t txBuffer_size) {
+  do_send(&sendjob, txBuffer, txBuffer_size);
 }
 
-void do_send(osjob_t *j)
+void do_send(osjob_t *j, uint8_t *txBuffer, size_t txBuffer_size)
 {
   // Check if there is not a current TX/RX job running
   if (LMIC.opmode & OP_TXRXPEND)
@@ -185,7 +185,7 @@ void do_send(osjob_t *j)
   }
   else
   {
-    LMIC_setTxData2(1, txBuffer, sizeof(txBuffer), 0);
+    LMIC_setTxData2(1, txBuffer, txBuffer_size, 0);
     Serial.println(F("Packet queued"));
   }
   // Next TX is scheduled after TX_COMPLETE event.

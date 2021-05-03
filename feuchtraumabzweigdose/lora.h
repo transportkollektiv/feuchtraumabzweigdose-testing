@@ -23,15 +23,13 @@ extern osjob_t sendjob;
 extern const lmic_pinmap lmic_pins;
 extern char s[32];
 
-extern uint8_t txBuffer[11];
-
 void os_getArtEui(u1_t *buf);
 void os_getDevEui(u1_t *buf);
 void os_getDevKey(u1_t *buf);
-void do_send(osjob_t *j);
+void do_send(osjob_t *j, uint8_t *txBuffer, size_t txBuffer_size);
 void lora_init(int bootCount);
 void lora_onEvent(ev_t ev);
-void lora_send ();
+void lora_send (uint8_t *txBuffer, size_t txBuffer_size);
 
 
 
