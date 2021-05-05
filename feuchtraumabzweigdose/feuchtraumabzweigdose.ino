@@ -9,7 +9,15 @@
 
 //Some config validation
 #if !((defined(USE_GPS) && USE_GPS == AS_PRIMARY) || (defined(USE_WIFI) && USE_WIFI == AS_PRIMARY))
-#error "GPS or Wifi must be enabled and set as primary location source in config.h!"
+#error "Config Error: GPS or Wifi must be enabled and set as primary location source in config.h!"
+#endif
+
+#if PAYLOAD_TYPE == PAYLOAD_WIFITRACKER && defined(USE_GPS)
+#error "Config Error: Deactivate GPS if you want payload compatibility with Wifi trackers!"
+#endif
+
+#if PAYLOAD_TYPE == PAYLOAD_TBEAM && defined(USE_WIFI)
+#error "Config Error: Deactivate Wifi if you want payload compatibility with T-Beam GPS trackers!"
 #endif
 
 #define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
@@ -36,6 +44,7 @@ int status;
 RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR int statCount = 0;
 float vBat;
+wifi wifi;
 
 #ifdef USE_GPS
 gps gps;
@@ -46,7 +55,6 @@ RTC_DATA_ATTR double dist = 0;
 #endif
 
 #ifdef USE_WIFI
-wifi wifi;
 uint8_t wifi_data[53];
 int wifi_data_len = 0;
 #endif
@@ -81,12 +89,15 @@ float getBatteryVoltage()
   return reading * (1 + 1.2 / 3.3) * (3.3 / 1023);
 }
 
+#ifdef USE_WIFI
 get_location_result_t getWIFILocation()
 {
   wifi_data_len = wifi.scan(wifi_data);
   return ((wifi_data_len > 0) ? GET_LOCATION_SUCCESS : GET_LOCATION_FAILED);
 }
+#endif
 
+#ifdef USE_GPS
 get_location_result_t getGPSLocation()
 {
   get_location_result_t returnVal = GET_LOCATION_FAILED;
@@ -147,6 +158,7 @@ get_location_result_t getGPSLocation()
 
   return returnVal;
 }
+#endif
 
 void onEvent(ev_t ev)
 {
@@ -264,35 +276,44 @@ void setup()
   get_location_result_t result_gps = GET_LOCATION_NOT_USED;
   get_location_result_t result_wifi = GET_LOCATION_NOT_USED;
 
-#if defined(USE_GPS) && USE_GPS == AS_PRIMARY
-  result_gps = getGPSLocation();
-  if (result_gps == GET_LOCATION_STATIONARY)
-    lowPower();
-#endif
-
-#if defined(USE_WIFI) && USE_WIFI == AS_PRIMARY
-  result_wifi = getWIFILocation();
-
-#elif defined(USE_WIFI) && USE_WIFI == AS_FALLBACK
-  if (!(result_gps == GET_LOCATION_SUCCESS))
-  {
-    result_wifi = getWIFILocation();
-  }
-#endif
-
-#if defined(USE_GPS) && USE_GPS == AS_FALLBACK
-  if (!(result_wifi == GET_LOCATION_SUCCESS))
-  {
+  #if defined(USE_GPS) && USE_GPS == AS_PRIMARY
     result_gps = getGPSLocation();
-  }
-#endif
+    if (result_gps == GET_LOCATION_STATIONARY)
+      lowPower();
+  #endif
 
-  uint8_t voltage_data[2];
-  voltage_data[0] = (uint16_t)(vBat * 100) >> 8;
-  voltage_data[1] = (uint16_t)(vBat * 100);
+  #if defined(USE_WIFI) && USE_WIFI == AS_PRIMARY
+    result_wifi = getWIFILocation();
+
+  #elif defined(USE_WIFI) && USE_WIFI == AS_FALLBACK
+    if (!(result_gps == GET_LOCATION_SUCCESS))
+    {
+      result_wifi = getWIFILocation();
+    }
+  #endif
+
+  #if defined(USE_GPS) && USE_GPS == AS_FALLBACK
+    if (!(result_wifi == GET_LOCATION_SUCCESS))
+    {
+      result_gps = getGPSLocation();
+    }
+  #endif
+
+  #if PAYLOAD_TYPE == PAYLOAD_DEFAULT || PAYLOAD_TYPE == PAYLOAD_TBEAM
+    uint8_t voltage_data[2];
+    voltage_data[0] = (uint16_t)(vBat * 100) >> 8;
+    voltage_data[1] = (uint16_t)(vBat * 100);
+
+  #elif PAYLOAD_TYPE == PAYLOAD_WIFITRACKER
+    uint8_t voltage_data;
+    voltage_data = vBat * 1024 / (4 * 7.8);
+  #endif
+
+  
 
   if (result_gps == GET_LOCATION_SUCCESS && result_wifi == GET_LOCATION_SUCCESS)
   {
+    #if PAYLOAD_TYPE == PAYLOAD_DEFAULT
     //Send both gps and wifi
     Serial.println("Sending location data from GPS and WIFI");
     uint8_t txBuffer[3 + 9 + wifi_data_len];
@@ -301,34 +322,73 @@ void setup()
     memcpy(txBuffer + 3, gps_data, 9);
     memcpy(txBuffer + 3 + 9, wifi_data, wifi_data_len);
     lora_send(txBuffer, sizeof(txBuffer));
+    #endif
   }
   else if (result_gps == GET_LOCATION_SUCCESS)
   {
     //Send only gps
     Serial.println("Sending location data from GPS");
+
+    #if PAYLOAD_TYPE == PAYLOAD_DEFAULT
     uint8_t txBuffer[3 + 9];
     txBuffer[0] = 0x11;
     memcpy(txBuffer + 1, voltage_data, 2);
     memcpy(txBuffer + 3, gps_data, 9);
     lora_send(txBuffer, sizeof(txBuffer));
+
+    #elif PAYLOAD_TYPE == PAYLOAD_TBEAM
+    uint8_t txBuffer[9 + 2];
+    memcpy(txBuffer, gps_data, 9);
+    memcpy(txBuffer + 9, voltage_data, 2);
+    lora_send(txBuffer, sizeof(txBuffer));
+    #endif
+
+    
   }
   else if (result_wifi == GET_LOCATION_SUCCESS)
   {
     //Send only wifi
     Serial.println("Sending location data from WIFI");
+
+    #if PAYLOAD_TYPE == PAYLOAD_DEFAULT
     uint8_t txBuffer[3 + wifi_data_len];
     txBuffer[0] = 0x12;
     memcpy(txBuffer + 1, voltage_data, 2);
     memcpy(txBuffer + 3, wifi_data, wifi_data_len);
     lora_send(txBuffer, sizeof(txBuffer));
+
+    #elif PAYLOAD_TYPE == PAYLOAD_WIFITRACKER
+    uint8_t txBuffer[2 + wifi_data_len];
+    txBuffer[0] = 0x02;
+    txBuffer[1] = voltage_data;
+    memcpy(txBuffer + 2, wifi_data, wifi_data_len);
+    lora_send(txBuffer, sizeof(txBuffer));
+    #endif
+
+    
   }
   else
   {
     //Send failure message
     Serial.println("Sending failure message");
+
+    #if PAYLOAD_TYPE == PAYLOAD_DEFAULT
     uint8_t txBuffer[3];
     txBuffer[0] = 0x01;
     memcpy(txBuffer + 1, voltage_data, 2);
+
+    #elif PAYLOAD_TYPE == PAYLOAD_TBEAM
+    uint8_t txBuffer[9 + 2];
+    for (int i = 0; i < 9; i++) gps_data[i] = 0x00;
+    memcpy(txBuffer, gps_data, 9);
+    memcpy(txBuffer + 9, voltage_data, 2);
+
+    #elif PAYLOAD_TYPE == PAYLOAD_WIFITRACKER
+    uint8_t txBuffer[2];
+    txBuffer[0] = 0x02;
+    txBuffer[1] = voltage_data;
+    #endif
+
     lora_send(txBuffer, sizeof(txBuffer));
   }
   
