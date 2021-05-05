@@ -20,19 +20,6 @@
 #error "Config Error: Deactivate Wifi if you want payload compatibility with T-Beam GPS trackers!"
 #endif
 
-#define uS_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
-
-#ifdef DEBUG
-#define TIME_TO_SLEEP 30 /* Time ESP32 will go to sleep (in seconds) */
-#define STATCOUNT 1
-#else
-#ifdef HAS_IMU
-#define TIME_TO_SLEEP 1800
-#else
-#define TIME_TO_SLEEP 600
-#endif
-#define STATCOUNT 2
-#endif
 
 #if defined(HAS_IMU) && HAS_IMU == MPU9250
 // MPU Accelerometer for wake on motion
@@ -113,7 +100,7 @@ get_location_result_t getGPSLocation()
   gps.softwareReset();
 
   unsigned long startGpsTime = millis();
-  while (millis() < startGpsTime + GPS_TIMEOUT)
+  while (millis() < startGpsTime + GPS_TIMEOUT * 1000)
   {
     if (gps.checkGpsFix())
     {
