@@ -102,6 +102,11 @@ get_location_result_t getGPSLocation()
 {
   get_location_result_t returnVal = GET_LOCATION_FAILED;
 
+  if (vBat < GPS_MIN_VCC) {
+    Serial.println("vBat below GPS_MIN_VCC! Not using GPS.");
+    return returnVal;
+  }
+
   // start gps
   digitalWrite(VEXT_ON, LOW);
   gps.init();
