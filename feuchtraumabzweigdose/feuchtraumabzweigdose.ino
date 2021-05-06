@@ -87,21 +87,48 @@ get_location_result_t getWIFILocation()
 #ifdef USE_GPS
 get_location_result_t getGPSLocation()
 {
-  get_location_result_t returnVal = GET_LOCATION_FAILED;
-
   if (vBat < GPS_MIN_VCC) {
     Serial.println("vBat below GPS_MIN_VCC! Not using GPS.");
-    return returnVal;
+    return GET_LOCATION_FAILED;
   }
 
-  // start gps
+  // Start gps
   digitalWrite(VEXT_ON, LOW);
   gps.init();
   gps.softwareReset();
 
+  // Test connection
+  if (!gps.encode()) {
+    Serial.println("No incoming data from GPS. Check wiring");
+    return GET_LOCATION_FAILED;
+  }
+
   unsigned long startGpsTime = millis();
+  unsigned long lastMillis = millis();
+  get_location_result_t returnVal = GET_LOCATION_FAILED;
+
+  // Poll every GPS_POLLING_INTERVAL seconds until GPS_TIMEOUT and put ESP to light sleep when idle
   while (millis() < startGpsTime + GPS_TIMEOUT * 1000)
   {
+    // Prepare light sleep
+    #ifdef DEBUG
+    Serial.println("Putting ESP to light sleep...");
+    #endif
+    Serial.flush(); // Wait for Serial packets being sent
+    gpio_hold_dis((gpio_num_t) VEXT_ON); // Ensure Vext pin stays low
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+    esp_sleep_enable_timer_wakeup(GPS_POLLING_INTERVAL * uS_TO_S_FACTOR - (millis() - lastMillis) * 1000); // Set wakeup timer
+
+    // Send to light sleep
+    esp_light_sleep_start();
+
+    // Wake up again
+    #ifdef DEBUG
+    Serial.println("ESP waking up from light sleep");
+    #endif
+    lastMillis = millis();
+
+    // Check fix
     if (gps.checkGpsFix())
     {
       dist = TinyGPSPlus::distanceBetween(gps.lat(), gps.lng(), prevLat, prevLon);
@@ -125,11 +152,11 @@ get_location_result_t getGPSLocation()
       {
         Serial.println("Not sending, stationary.");
         Serial.println("Distance moved: " + String(dist));
-#ifndef HAS_IMU
+        #ifndef HAS_IMU
         Serial.println("Time stationary: " + String(statCount * TIME_TO_SLEEP * uS_TO_S_FACTOR));
-#else
+        #else
         Serial.println("Time stationary: " + String(statCount));
-#endif
+        #endif
 
         ++statCount;
         RTC_seqnoUp = LMIC.seqnoUp; //FIXME
@@ -262,8 +289,6 @@ void setup()
   os_init();
   lora_init(bootCount);
 
-  //TODO determine whether to send emergency message because of voltage
-
   // Get Locations
   get_location_result_t result_gps = GET_LOCATION_NOT_USED;
   get_location_result_t result_wifi = GET_LOCATION_NOT_USED;
@@ -301,7 +326,6 @@ void setup()
     voltage_data = vBat * 1024 / (4 * 7.8);
   #endif
 
-  
 
   if (result_gps == GET_LOCATION_SUCCESS && result_wifi == GET_LOCATION_SUCCESS)
   {

@@ -82,6 +82,13 @@
 #define GPS_TIMEOUT 150
 
 
+// GPS fix polling interval
+// --------------
+// Time between checks for gps fix (in seconds)
+// default: 1
+#define GPS_POLLING_INTERVAL 5
+
+
 // Movement detection distance
 // --------------
 // Minimum distance in meters between two measures

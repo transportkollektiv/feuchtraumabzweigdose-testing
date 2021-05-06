@@ -9,25 +9,32 @@ void gps::init()
   GPSSerial.setTimeout(2);
 }
 
-void gps::encode()
-{       
-    int data;
-    int previousMillis = millis();
+bool gps::encode()
+{ 
+    bool success = false;
+    unsigned long startMillis = millis();
+    unsigned long previousMillis = 0;
 
-    while((previousMillis + 1000) > millis())
+    while((startMillis + 1000) > millis())
     {
         while (GPSSerial.available() )
         {
+            success = true;
             char data = GPSSerial.read();
             tGps.encode(data);
             #ifdef GPSDEBUG
               Serial.print(data);
             #endif
+            previousMillis = millis();
+        }
+        if (previousMillis && millis() - previousMillis > 100) {
+          break;
         }
     }
     #ifdef GPSDEBUG
      Serial.println("");
     #endif
+    return success;
 }
 
 void gps::buildPacket(uint8_t txBuffer[9])
@@ -87,7 +94,6 @@ void gps::enableSleep()
     GPSSerial.write(RXM_PMREQ, sizeof(RXM_PMREQ));
     unsigned long startTime = millis();
     unsigned long offTime = 1;
-    Serial.println(offTime);
     
     while(millis() - startTime < 1000){ //wait for the last command to finish
       int c = GPSSerial.read();
