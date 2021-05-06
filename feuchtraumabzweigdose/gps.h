@@ -11,7 +11,7 @@ class gps
         void init();
         bool checkGpsFix();
         void buildPacket(uint8_t txBuffer[9]);
-        void encode();
+        bool encode();
         double lat();
         double lng(); 
         void wakeup();
