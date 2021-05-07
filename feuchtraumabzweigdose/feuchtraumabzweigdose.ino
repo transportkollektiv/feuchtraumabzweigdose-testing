@@ -7,6 +7,10 @@
 #include "gps.h"
 #include "lora.h"
 
+#ifdef HAS_IMU
+#include "imu.h"
+#endif
+
 //Some config validation
 #if !((defined(USE_GPS) && USE_GPS == AS_PRIMARY) || (defined(USE_WIFI) && USE_WIFI == AS_PRIMARY))
 #error "Config Error: GPS or Wifi must be enabled and set as primary location source in config.h!"
@@ -18,14 +22,6 @@
 
 #if PAYLOAD_TYPE == PAYLOAD_TBEAM && defined(USE_WIFI)
 #error "Config Error: Deactivate Wifi if you want payload compatibility with T-Beam GPS trackers!"
-#endif
-
-
-#if defined(HAS_IMU) && HAS_IMU == MPU9250
-// MPU Accelerometer for wake on motion
-#include "MPU9250.h"
-MPU9250 IMU(SPI, IMU_NCS);
-int status;
 #endif
 
 RTC_DATA_ATTR int bootCount = 0;
@@ -44,6 +40,10 @@ RTC_DATA_ATTR double dist = 0;
 #ifdef USE_WIFI
 uint8_t wifi_data[53];
 int wifi_data_len = 0;
+#endif
+
+#ifdef HAS_IMU
+imu imu;
 #endif
 
 typedef enum
@@ -194,13 +194,13 @@ void lowPower()
   // Ensure that external power supply is off
   digitalWrite(VEXT_ON, HIGH);
 
-// Set two wakeup sources: Timer for heartbeat, and interrupt for
-// motion detection from IMU
-#ifdef HAS_IMU
-  rtc_gpio_pulldown_en(GPIO_NUM_4);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 1);
-  delay(500);
-#endif
+  // Set two wakeup sources: Timer for heartbeat, and interrupt for
+  // motion detection from IMU
+  #ifdef HAS_IMU
+    rtc_gpio_pulldown_en((gpio_num_t) IMU_WAKE);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t) IMU_WAKE,1);
+    delay(500);
+  #endif
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
   delay(500);
   esp_deep_sleep_start();
@@ -211,9 +211,9 @@ void setup()
 
   //Turn off Bluetooth (and WiFi)
   btStop();
-#ifndef USE_WIFI
+  #ifndef USE_WIFI
   wifi.disable();
-#endif
+  #endif
 
   // measure battery voltage
   adcAttachPin(BATTERY_VOLTAGE);
@@ -230,7 +230,8 @@ void setup()
   Serial.println(FW_VERSION);
 
   ++bootCount; // increment boot number and print it every reboot
-#ifdef DEBUG
+
+  #ifdef DEBUG
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
 
   Serial.println("Boot number: " + String(bootCount));
@@ -262,28 +263,13 @@ void setup()
     Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeup_reason);
     break;
   }
-#endif
+  #endif
 
-//IMU init
-#if defined(HAS_IMU) && HAS_IMU == MPU9250
-  // start communication with IMU
-  status = IMU.begin();
-#ifdef DEBUG
-  if (status < 0)
-  {
-    Serial.println("IMU initialization unsuccessful");
-    Serial.println("Check IMU wiring or try cycling power");
-    Serial.print("Status: ");
-    Serial.println(status);
-    while (1)
-    {
-    }
-  }
-#endif
-  int imo_wom = IMU.enableWakeOnMotion(IMU_WAKEUP_FORCE, MPU9250::LP_ACCEL_ODR_15_63HZ);
-  Serial.print("Wake on motion set: ");
-  Serial.println(imo_wom);
-#endif
+  //IMU init
+  #ifdef HAS_IMU
+    imu.init();
+    imu.enableWakeup();
+  #endif
 
   // LMIC init
   os_init();

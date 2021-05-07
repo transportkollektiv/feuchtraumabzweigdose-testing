@@ -33,8 +33,9 @@
 // --------------
 // An Inertial measurement unit can be connected via 
 // the SPI Bus and used as a wakeup signal.
-// Currently, only the MPU9250 is supported
-//#define HAS_IMU MPU9250
+// Currently, MPU9250 and LIS3DH are supported
+//#define HAS_IMU IMU_MPU9250
+#define HAS_IMU IMU_LIS3DH
 
 
 // Sleeptime
@@ -108,6 +109,9 @@
 
 // ================== Pinout ==================
 
+//IMU
+#define IMU_WAKEUP_FORCE 300
+
 // For WROOM:
 // DIO0 → IO26
 // DIO1 → IO27
@@ -127,8 +131,10 @@
 #define BATTERY_VOLTAGE 32
 #define VEXT_ON 25
 
+#ifdef HAS_IMU
 #define IMU_NCS 13
-#define IMU_WAKEUP_FORCE 300
+#define IMU_WAKE GPIO_NUM_4
+#endif
 
 #define RFM_NSS 21
 #define RFM_RESET 33
