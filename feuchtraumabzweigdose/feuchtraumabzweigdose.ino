@@ -107,7 +107,7 @@ get_location_result_t getGPSLocation()
   unsigned long lastMillis = millis();
   get_location_result_t returnVal = GET_LOCATION_FAILED;
 
-  // Poll every GPS_POLLING_INTERVAL seconds until GPS_TIMEOUT and put ESP to light sleep when idle
+  // Poll every 1 seconds until GPS_TIMEOUT and put ESP to light sleep when idle
   while (millis() < startGpsTime + GPS_TIMEOUT * 1000)
   {
     // Prepare light sleep
@@ -117,7 +117,7 @@ get_location_result_t getGPSLocation()
     Serial.flush(); // Wait for Serial packets being sent
     gpio_hold_dis((gpio_num_t) VEXT_ON); // Ensure Vext pin stays low
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
-    esp_sleep_enable_timer_wakeup(GPS_POLLING_INTERVAL * uS_TO_S_FACTOR - (millis() - lastMillis) * 1000); // Set wakeup timer
+    esp_sleep_enable_timer_wakeup(1 * uS_TO_S_FACTOR - (millis() - lastMillis) * 1000); // Set wakeup timer
 
     // Send to light sleep
     esp_light_sleep_start();
