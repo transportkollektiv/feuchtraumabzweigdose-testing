@@ -1,8 +1,6 @@
 ## Intro
 
-This is a testbed for the Feuchtraumabzweigdose board, which can also be adapted for similar ESP32 based boards incorporating LoRaWan transmitter, switchable GPS, MPU9250 IMU etc.
-
-It can be configured to transmit either GPS location or Wifi SSIDs, depending on battery voltage and availability.
+This is a testbed for the [Feuchtraumabzweigdose PCB](https://github.com/stadtulm/feuchtraumabzweigdose), which can also be adapted for similar ESP32 based boards incorporating LoRaWan transmitter, switchable GPS, MPU9250 IMU etc. Can be configured to transmit either GPS location or Wifi SSIDs, depending on battery voltage and availability.
 
 Derived from [radforschung/Lora-TTNMapper-T-Beam](https://github.com/radforschung/Lora-TTNMapper-T-Beam) which itself was derived from [sbiermann/Lora-TTNMapper-ESP32](https://github.com/sbiermann/Lora-TTNMapper-ESP32) and with some information/inspiration from [cyberman54/ESP32-Paxcounter](https://github.com/cyberman54/ESP32-Paxcounter) and [Edzelf/LoRa](https://github.com/Edzelf/LoRa). Modified and enhanced by dermatthias with sleep and OTAA features for this fork. Additional sleepytimes for the GPS module enabling lower-power-ish operations by stk, based on work by [JoepSchyns/Low_power_TTGO_T-Beam](https://github.com/JoepSchyns/Low_power_TTGO_T-beam) and helpful [ublox documentation in the UKHAS Wiki](https://ukhas.org.uk/guides:ublox_psm). The wifi scan functionality was derived from [stadtulm/Lora-Wifi-Location-Tracker](https://github.com/stadtulm/Lora-Wifi-Location-Tracker).
 
