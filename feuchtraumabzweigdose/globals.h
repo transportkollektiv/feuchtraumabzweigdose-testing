@@ -9,7 +9,7 @@
 #define PAYLOAD_DEFAULT 3
 #define PAYLOAD_WIFITRACKER 4
 #define PAYLOAD_GPS 5
-#define MPU9250 6
+#define IMU_MPU9250 6
 
 
 #endif //GLOBALS_H

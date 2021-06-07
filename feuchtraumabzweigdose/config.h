@@ -3,9 +3,14 @@
 
 #include "globals.h"
 
-// Config file for feuchtraumabzweigdose-testing
-
 // ================== GENERAL ==================
+
+// Pinmap
+// --------------
+// Include the right pinmap that fits your board
+//#include "pinmaps/feuchtraumabzw_pcb.h" //default
+#include "pinmaps/lock_pcb.h"
+//#include "pinmaps/custom.h"
 
 // Debug
 // --------------
@@ -34,7 +39,7 @@
 // An Inertial measurement unit can be connected via 
 // the SPI Bus and used as a wakeup signal.
 // Currently, only the MPU9250 is supported
-//#define HAS_IMU MPU9250
+//#define HAS_IMU IMU_MPU9250
 
 
 // Sleeptime
@@ -106,37 +111,13 @@
 // default: 1
 #define STATCOUNT 1
 
-// ================== Pinout ==================
+// ================== Other settings ==================
 
-// For WROOM:
-// DIO0 → IO26
-// DIO1 → IO27
-// RSET → IO33
-// NSS  → IO21
-// SCK  → IO18
-// MISO → IO19
-// MOSI → IO23
-//
-// MPU9250:
-// SCL  → IO22
-// SDA  → IO21
-// INT  → IO4
-// ADD  → GND
-
-#define BUILTIN_LED 14
-#define BATTERY_VOLTAGE 32
-#define VEXT_ON 25
-
-#define IMU_NCS 13
+// IMU Wakeup Threshold
+// --------------
+// Range: 0 - 1023
+// Default: 300
 #define IMU_WAKEUP_FORCE 300
-
-#define RFM_NSS 21
-#define RFM_RESET 33
-#define RFM_DIO0 26
-#define RFM_DIO1 27
-
-#define GPS_TX 17
-#define GPS_RX 16
 
 
 #endif //CONFIG_H

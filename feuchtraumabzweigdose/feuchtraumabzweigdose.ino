@@ -21,7 +21,7 @@
 #endif
 
 
-#if defined(HAS_IMU) && HAS_IMU == MPU9250
+#if defined(HAS_IMU) && HAS_IMU == IMU_MPU9250
 // MPU Accelerometer for wake on motion
 #include "MPU9250.h"
 MPU9250 IMU(SPI, IMU_NCS);
@@ -197,8 +197,8 @@ void lowPower()
 // Set two wakeup sources: Timer for heartbeat, and interrupt for
 // motion detection from IMU
 #ifdef HAS_IMU
-  rtc_gpio_pulldown_en(GPIO_NUM_4);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_4, 1);
+  rtc_gpio_pulldown_en((gpio_num_t) IMU_WAKE);
+  esp_sleep_enable_ext0_wakeup((gpio_num_t) IMU_WAKE, 1);
   delay(500);
 #endif
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
@@ -265,7 +265,7 @@ void setup()
 #endif
 
 //IMU init
-#if defined(HAS_IMU) && HAS_IMU == MPU9250
+#if defined(HAS_IMU) && HAS_IMU == IMU_MPU9250
   // start communication with IMU
   status = IMU.begin();
 #ifdef DEBUG
